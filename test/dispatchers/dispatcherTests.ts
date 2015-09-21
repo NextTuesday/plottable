@@ -54,20 +54,49 @@ describe("Dispatchers", () => {
     });
 
     it("can set and unset callbacks", () => {
-      let dispatcher = new Plottable.Dispatcher();
+      let dispatcher = new Mocks.BasicDispatcher();
       let callbackSet = new Plottable.Utils.CallbackSet<Function>();
 
       let callbackWasCalled = false;
       let callback = () => callbackWasCalled = true;
 
-      (<any> dispatcher)._setCallback(callbackSet, callback);
+      dispatcher.setCallback(callbackSet, callback);
       callbackSet.callCallbacks();
       assert.isTrue(callbackWasCalled, "callback was called after setting with _setCallback()");
 
-      (<any> dispatcher)._unsetCallback(callbackSet, callback);
+      dispatcher.unsetCallback(callbackSet, callback);
       callbackWasCalled = false;
       callbackSet.callCallbacks();
       assert.isFalse(callbackWasCalled, "callback was removed by calling _unsetCallback()");
     });
   });
 });
+
+module Mocks {
+  export class BasicDispatcher extends Plottable.Dispatcher {
+
+    public dummyCallbackSet: Plottable.Utils.CallbackSet<Function>;
+
+    public constructor() {
+      super();
+      this.dummyCallbackSet = new Plottable.Utils.CallbackSet<Function>();
+    }
+
+    public listenToEvent(event: string, callback: (e: Event) => any) {
+      this._eventToCallback[event] = callback;
+    }
+
+    public disconnect() {
+
+    }
+
+    public setCallback(callbackSet: Plottable.Utils.CallbackSet<Function>, callback: Function) {
+      return this._setCallback(callbackSet, callback);
+    }
+
+    public unsetCallback(callbackSet: Plottable.Utils.CallbackSet<Function>, callback: Function) {
+      return this._unsetCallback(callbackSet, callback);
+
+    }
+  }
+}
