@@ -2046,6 +2046,8 @@ var Plottable;
                 var d3InnerPadding = 0.3;
                 this._innerPadding = Category._convertToPlottableInnerPadding(d3InnerPadding);
                 this._outerPadding = Category._convertToPlottableOuterPadding(0.5, d3InnerPadding);
+                var that = this;
+                this._tickGenerator = function () { return that.domain(); };
             }
             Category.prototype.extentOfValues = function (values) {
                 return Plottable.Utils.Array.uniq(values);
@@ -2117,6 +2119,15 @@ var Plottable;
             Category.prototype.scale = function (value) {
                 // scale it to the middle
                 return this._d3Scale(value) + this.rangeBand() / 2;
+            };
+            Category.prototype.tickGenerator = function (generator) {
+                if (generator == null) {
+                    return this._tickGenerator;
+                }
+                else {
+                    this._tickGenerator = generator;
+                    return this;
+                }
             };
             Category.prototype._getDomain = function () {
                 return this._d3Scale.domain();
@@ -4865,12 +4876,14 @@ var Plottable;
             function Category(scale, orientation) {
                 _super.call(this, scale, orientation);
                 this._tickLabelAngle = 0;
+                this._tickTextTrimming = 'ellipsis';
                 this.addClass("category-axis");
             }
             Category.prototype._setup = function () {
                 _super.prototype._setup.call(this);
                 this._measurer = new SVGTypewriter.Measurers.CacheCharacterMeasurer(this._tickLabelContainer);
-                this._wrapper = new SVGTypewriter.Wrappers.Wrapper();
+                this._wrapper = new SVGTypewriter.Wrappers.SingleLineWrapper();
+                this._wrapper.textTrimming(this._tickTextTrimming);
                 this._writer = new SVGTypewriter.Writers.Writer(this._measurer, this._wrapper);
             };
             Category.prototype._rescale = function () {
@@ -4895,7 +4908,7 @@ var Plottable;
                     }
                 }
                 var categoryScale = this._scale;
-                var measureResult = this._measureTicks(offeredWidth, offeredHeight, categoryScale, categoryScale.domain());
+                var measureResult = this._measureTicks(offeredWidth, offeredHeight, categoryScale, categoryScale._tickGenerator() /*categoryScale.domain()*/);
                 return {
                     minWidth: measureResult.usedWidth + widthRequiredByTicks,
                     minHeight: measureResult.usedHeight + heightRequiredByTicks
@@ -4911,7 +4924,7 @@ var Plottable;
                 return Math.min(axisHeightWithoutMargin, relevantDimension);
             };
             Category.prototype._getTickValues = function () {
-                return this._scale.domain();
+                return this._scale._tickGenerator/*domain*/();
             };
             Category.prototype.tickLabelAngle = function (angle) {
                 if (angle == null) {
@@ -5020,7 +5033,7 @@ var Plottable;
                 var _this = this;
                 _super.prototype.renderImmediately.call(this);
                 var catScale = this._scale;
-                var tickLabels = this._tickLabelContainer.selectAll("." + Plottable.Axis.TICK_LABEL_CLASS).data(this._scale.domain(), function (d) { return d; });
+                var tickLabels = this._tickLabelContainer.selectAll("." + Plottable.Axis.TICK_LABEL_CLASS).data(this._scale._tickGenerator/*domain*/(), function (d) { return d; });
                 var getTickLabelTransform = function (d, i) {
                     var innerPaddingWidth = catScale.stepWidth() - catScale.rangeBand();
                     var scaledValue = catScale.scale(d) - catScale.rangeBand() / 2 - innerPaddingWidth / 2;
@@ -5031,6 +5044,14 @@ var Plottable;
                 tickLabels.enter().append("g").classed(Plottable.Axis.TICK_LABEL_CLASS, true);
                 tickLabels.exit().remove();
                 tickLabels.attr("transform", getTickLabelTransform);
+                var len = tickLabels.size() - 1;
+                tickLabels.each(function (d, i) {
+                    if (i !== 0 && i !== len) {
+                        return;
+                    }
+                    var entry = d3.select(this);
+                    entry.classed(Plottable.Axis.TICK_LABEL_CLASS + '-' + (!i ? 'first' : 'last') + '-tick', true);
+                });
                 // erase all text first, then rewrite
                 tickLabels.text("");
                 this._drawTicks(this.width(), this.height(), catScale, tickLabels);
@@ -5048,6 +5069,14 @@ var Plottable;
                 if (!this._isHorizontal()) {
                     this._scale.range([0, this.height()]);
                 }
+                return this;
+            };
+            Category.prototype.tickTextTrimming = function (trimming) {
+                // When anyone calls redraw(), computeLayout() will be called
+                // on everyone, including this. Since CSS or something might have
+                // affected the size of the characters, clear the cache.
+                this._tickTextTrimming = trimming;
+
                 return this;
             };
             return Category;
@@ -5073,6 +5102,7 @@ var Plottable;
                 if (angle === void 0) { angle = 0; }
                 _super.call(this);
                 this.addClass("label");
+                this.topPadding(0);
                 this.text(displayText);
                 this.angle(angle);
                 this.xAlignment("center").yAlignment("center");
@@ -5144,6 +5174,15 @@ var Plottable;
                     return this;
                 }
             };
+            Label.prototype.topPadding = function (padAmount) {
+                if (padAmount == null) {
+                    return this._topPadding;
+                }
+                else {
+                    this._topPadding = padAmount;
+                    return this;
+                }
+            };
             Label.prototype.fixedWidth = function () {
                 return true;
             };
@@ -5157,7 +5196,7 @@ var Plottable;
                 var textMeasurement = this._measurer.measure(this._text);
                 var heightPadding = Math.max(Math.min((this.height() - textMeasurement.height) / 2, this.padding()), 0);
                 var widthPadding = Math.max(Math.min((this.width() - textMeasurement.width) / 2, this.padding()), 0);
-                this._textContainer.attr("transform", "translate(" + widthPadding + "," + heightPadding + ")");
+                this._textContainer.attr("transform", "translate(" + widthPadding + "," + (heightPadding + this._topPadding)  + ")");
                 var writeWidth = this.width() - 2 * widthPadding;
                 var writeHeight = this.height() - 2 * heightPadding;
                 var writeOptions = {
@@ -5221,7 +5260,12 @@ var Plottable;
                 _super.call(this);
                 this._padding = 5;
                 this.addClass("legend");
+                this.topPadding(20);
+                this.rowPadding(5);
+                this.leftPadding(27);
                 this.maxEntriesPerRow(1);
+                this.identicalEntryWidth(false);
+                this.swapEntries(false);
                 if (colorScale == null) {
                     throw new Error("Legend requires a colorScale");
                 }
@@ -5241,7 +5285,7 @@ var Plottable;
                 _super.prototype._setup.call(this);
                 var fakeLegendRow = this.content().append("g").classed(Legend.LEGEND_ROW_CLASS, true);
                 var fakeLegendEntry = fakeLegendRow.append("g").classed(Legend.LEGEND_ENTRY_CLASS, true);
-                fakeLegendEntry.append("text");
+                fakeLegendEntry.append("text").classed(Legend.LEGEND_ENTRY_HEIGHT_CLASS, true);
                 this._measurer = new SVGTypewriter.Measurers.Measurer(fakeLegendRow);
                 this._wrapper = new SVGTypewriter.Wrappers.Wrapper().maxLines(1);
                 this._writer = new SVGTypewriter.Writers.Writer(this._measurer, this._wrapper).addTitleElement(Plottable.Configs.ADD_TITLE_ELEMENTS);
@@ -5260,6 +5304,56 @@ var Plottable;
                 }
                 else {
                     this._maxEntriesPerRow = maxEntriesPerRow;
+                    this.redraw();
+                    return this;
+                }
+            };
+            Legend.prototype.identicalEntryWidth = function (identicalEntryWidth) {
+                if (identicalEntryWidth == null) {
+                    return this._identicalEntryWidth;
+                }
+                else {
+                    this._identicalEntryWidth = identicalEntryWidth;
+                    this.redraw();
+                    return this;
+                }
+            };
+            Legend.prototype.swapEntries = function (swapEntries) {
+                if (swapEntries == null) {
+                    return this._swapEntries;
+                }
+                else {
+                    this._swapEntries = swapEntries;
+                    this.redraw();
+                    return this;
+                }
+            };
+            Legend.prototype.topPadding = function (topPadding) {
+                if (topPadding == null) {
+                    return this._topPadding;
+                }
+                else {
+                    this._topPadding = topPadding;
+                    this.redraw();
+                    return this;
+                }
+            };
+            Legend.prototype.leftPadding = function (leftPadding) {
+                if (leftPadding == null) {
+                    return this._leftPadding;
+                }
+                else {
+                    this._leftPadding = leftPadding;
+                    this.redraw();
+                    return this;
+                }
+            };
+            Legend.prototype.rowPadding = function (rowPadding) {
+                if (rowPadding == null) {
+                    return this._rowPadding;
+                }
+                else {
+                    this._rowPadding = rowPadding;
                     this.redraw();
                     return this;
                 }
@@ -5296,35 +5390,91 @@ var Plottable;
                 var availableWidthForEntries = Math.max(0, (availableWidth - this._padding));
                 var entryNames = this._colorScale.domain().slice().sort(function (a, b) { return _this._comparator(_this._formatter(a), _this._formatter(b)); });
                 var entryLengths = d3.map();
+                var _entryLengths = d3.map();
                 var untruncatedEntryLengths = d3.map();
+                entryNames = entryNames.filter(function (entry) {
+                    if (entry) {
+                        return entry;
+                    }
+                });
                 entryNames.forEach(function (entryName) {
                     var untruncatedEntryLength = textHeight + _this._measurer.measure(_this._formatter(entryName)).width + _this._padding;
                     var entryLength = Math.min(untruncatedEntryLength, availableWidthForEntries);
-                    entryLengths.set(entryName, entryLength);
+                    _entryLengths.set(entryName, entryLength);
                     untruncatedEntryLengths.set(entryName, untruncatedEntryLength);
                 });
-                var rows = this._packRows(availableWidthForEntries, entryNames, entryLengths);
+                var rows = this._packRows(availableWidthForEntries, entryNames, _entryLengths);
                 var rowsAvailable = Math.floor((availableHeight - 2 * this._padding) / textHeight);
                 if (rowsAvailable !== rowsAvailable) {
                     rowsAvailable = 0;
                 }
+
+                var columnWidths = [],
+                    rowIndx = 0,
+                    entryIndx = 0,
+                    _rows = JSON.parse(JSON.stringify(rows));
+
+                while (rowIndx !== -1) {
+                    if (_rows[rowIndx].length !== _rows[0].length) {
+                        var miss = _rows[0].length - _rows[rowIndx].length;
+                        insertIntoStartOfArray(_rows[rowIndx], null, miss);
+                    }
+
+                    var entry = _rows[rowIndx][entryIndx],
+                        width = _entryLengths.get(entry);
+
+                    if (columnWidths[entryIndx] < width || !columnWidths[entryIndx]) {
+                        columnWidths[entryIndx] = width;
+                    }
+
+                    if (entry) {
+                        entryLengths.set(entry, columnWidths[entryIndx]);
+                    }
+
+                    if (_rows[0].length - 1 === entryIndx && _rows.length - 1 === rowIndx) {
+                        rowIndx = -1;
+                    } else if (_rows.length - 1 === rowIndx) {
+                        entryIndx++;
+                        rowIndx = 0;
+                    } else {
+                        rowIndx++;
+                    }
+                }
+
+                function insertIntoStartOfArray(array, ele, length) {
+                    for (var i = 0; i < length; i++) {
+                        array.unshift(ele);
+                    }
+                }
+
                 return {
                     textHeight: textHeight,
+                    _entryLengths: _entryLengths,
+                    _rows: _rows,
                     entryLengths: entryLengths,
                     untruncatedEntryLengths: untruncatedEntryLengths,
+                    columnWidths: columnWidths,
                     rows: rows,
                     numRowsToDraw: Math.max(Math.min(rowsAvailable, rows.length), 0)
                 };
             };
             Legend.prototype.requestedSpace = function (offeredWidth, offeredHeight) {
+                var _this = this;
                 var estimatedLayout = this._calculateLayoutInfo(offeredWidth, offeredHeight);
                 var untruncatedRowLengths = estimatedLayout.rows.map(function (row) {
                     return d3.sum(row, function (entry) { return estimatedLayout.untruncatedEntryLengths.get(entry); });
                 });
+
+                if (_this._identicalEntryWidth) {
+                    untruncatedRowLengths.pop();
+                    var _nSum = d3.sum(estimatedLayout.columnWidths, function (entry) { return entry; });
+                    untruncatedRowLengths.push(_nSum - (estimatedLayout.columnWidths.length * (estimatedLayout.textHeight / 4 - this._padding)));
+                }
+
                 var longestUntruncatedRowLength = Plottable.Utils.Math.max(untruncatedRowLengths, 0);
                 return {
                     minWidth: this._padding + longestUntruncatedRowLength,
-                    minHeight: estimatedLayout.rows.length * estimatedLayout.textHeight + 2 * this._padding
+                    minHeight: estimatedLayout.rows.length * estimatedLayout.textHeight + 2 * this._padding + 2 * this._rowPadding + this._topPadding
                 };
             };
             Legend.prototype._packRows = function (availableWidth, entries, entryLengths) {
@@ -5358,18 +5508,25 @@ var Plottable;
                 if (!this._isSetup) {
                     return [];
                 }
+                var _this = this;
                 var entities = [];
                 var layout = this._calculateLayoutInfo(this.width(), this.height());
-                var legendPadding = this._padding;
+                var legendPadding = this._padding + this._topPadding;
                 var legend = this;
                 this.content().selectAll("g." + Legend.LEGEND_ROW_CLASS).each(function (d, i) {
-                    var lowY = i * layout.textHeight + legendPadding;
-                    var highY = (i + 1) * layout.textHeight + legendPadding;
+                    var rowPadding = i * _this._rowPadding;
+                    var lowY = i * layout.textHeight + legendPadding + rowPadding;
+                    var highY = (i + 1) * layout.textHeight + legendPadding + rowPadding;
                     var symbolY = (lowY + highY) / 2;
                     var lowX = legendPadding;
                     var highX = legendPadding;
-                    d3.select(this).selectAll("g." + Legend.LEGEND_ENTRY_CLASS).each(function (value) {
-                        highX += layout.entryLengths.get(value);
+                    d3.select(this).selectAll("g." + Legend.LEGEND_ENTRY_CLASS).each(function (value, j) {
+                        highX += _this._identicalEntryWidth ? layout.columnWidths[j] : layout.entryLengths.get(value);
+
+                        if (isNaN(highX)) {
+                            return;
+                        }
+
                         var symbolX = lowX + layout.textHeight / 2;
                         if (highX >= p.x && lowX <= p.x &&
                             highY >= p.y && lowY <= p.y) {
@@ -5382,7 +5539,7 @@ var Plottable;
                                 component: legend
                             });
                         }
-                        lowX += layout.entryLengths.get(value);
+                        lowX += _this._identicalEntryWidth ? layout.columnWidths[j] : layout.entryLengths.get(value);
                     });
                 });
                 return entities;
@@ -5391,11 +5548,13 @@ var Plottable;
                 var _this = this;
                 _super.prototype.renderImmediately.call(this);
                 var layout = this._calculateLayoutInfo(this.width(), this.height());
-                var rowsToDraw = layout.rows.slice(0, layout.numRowsToDraw);
+                var rowsToDraw = layout[_this._swapEntries ? '_rows' : 'rows'].slice(0, layout.numRowsToDraw);
                 var rows = this.content().selectAll("g." + Legend.LEGEND_ROW_CLASS).data(rowsToDraw);
                 rows.enter().append("g").classed(Legend.LEGEND_ROW_CLASS, true);
                 rows.exit().remove();
-                rows.attr("transform", function (d, i) { return "translate(0, " + (i * layout.textHeight + _this._padding) + ")"; });
+                rows.attr("transform", function (d, i) {
+                    return "translate(" + _this._leftPadding + ", " + ((i * _this._rowPadding) + i * layout.textHeight + _this._padding  + _this._topPadding) + ")";
+                });
                 var entries = rows.selectAll("g." + Legend.LEGEND_ENTRY_CLASS).data(function (d) { return d; });
                 var entriesEnter = entries.enter().append("g").classed(Legend.LEGEND_ENTRY_CLASS, true);
                 entriesEnter.append("path");
@@ -5407,30 +5566,45 @@ var Plottable;
                     var entriesInRow = d3.select(this).selectAll("g." + Legend.LEGEND_ENTRY_CLASS);
                     entriesInRow.attr("transform", function (value, i) {
                         var translateString = "translate(" + xShift + ", 0)";
-                        xShift += layout.entryLengths.get(value);
+                        xShift += _this._identicalEntryWidth ? layout.columnWidths[i] : layout.entryLengths.get(value);
                         return translateString;
                     });
                 });
-                entries.select("path").attr("d", function (d, i, j) { return _this.symbol()(d, j)(layout.textHeight * 0.6); })
-                    .attr("transform", "translate(" + (layout.textHeight / 2) + "," + layout.textHeight / 2 + ")")
+                entries.select("path")
+                    .attr("d", function (d, i, j) { return _this.symbol()(d, j)(layout.textHeight * 0.6); })
                     .attr("fill", function (value) { return _this._colorScale.scale(value); })
-                    .attr("opacity", function (d, i, j) { return _this.symbolOpacity()(d, j); })
-                    .classed(Legend.LEGEND_SYMBOL_CLASS, true);
+                    .attr("opacity", function (d, i, j) { return !d ? 0 : _this.symbolOpacity()(d, j); })
+                    .attr("visibility", function (d, i, j) { return !d ? 'hidden' : 'visible' })
+                    .classed(Legend.LEGEND_SYMBOL_CLASS, true)
+                    .each(function (entry, i) {
+                        var entry = d3.select(this);
+                        var translateX = layout.textHeight / 2;
+                        if (_this._swapEntries) {
+                            translateX = (_this._identicalEntryWidth ? layout.columnWidths[i] : layout.entryLengths.get(value)) - layout.textHeight * 2;
+                        }
+                        entry.attr("transform", "translate(" + (translateX) + "," + layout.textHeight / 2 + ")")
+                    });
                 var padding = this._padding;
                 var textContainers = entries.select("g.text-container");
                 textContainers.text(""); // clear out previous results
-                var self = this;
-                textContainers.attr("transform", "translate(" + layout.textHeight + ", 0)")
-                    .each(function (value) {
-                    var container = d3.select(this);
-                    var maxTextLength = layout.entryLengths.get(value) - layout.textHeight - padding;
-                    var writeOptions = {
-                        selection: container,
-                        xAlign: "left",
-                        yAlign: "top",
-                        textRotation: 0
-                    };
-                    self._writer.write(self._formatter(value), maxTextLength, self.height(), writeOptions);
+                textContainers
+                    .each(function (value, i) {
+                        var container = d3.select(this);
+                        var translateX = layout.textHeight;
+                        var maxTextLength = _this._identicalEntryWidth ? layout.columnWidths[i] : layout.entryLengths.get(value) - layout.textHeight - padding;
+                        var writeOptions = {
+                            selection: container,
+                            xAlign: "left",
+                            yAlign: "top",
+                            textRotation: 0
+                        };
+                        _this._writer.write(value ? _this._formatter(value) : '', maxTextLength, _this.height(), writeOptions);
+
+                        if (_this._swapEntries && layout.entryLengths.get(value)) {
+                            translateX = (_this._identicalEntryWidth ? layout.columnWidths[i] - (layout.textHeight * 2.6) : layout.textHeight);
+                        }
+
+                        container.attr("transform", "translate(" + translateX + ", 0)")
                 });
                 return this;
             };
@@ -5471,6 +5645,10 @@ var Plottable;
              * The css class applied to each legend entry
              */
             Legend.LEGEND_ENTRY_CLASS = "legend-entry";
+            /**
+             * The css class applied to each legend entry
+             */
+            Legend.LEGEND_ENTRY_HEIGHT_CLASS = "legend-entry-height";
             /**
              * The css class applied to each legend symbol
              */
@@ -9361,6 +9539,9 @@ var Plottable;
                 innerScale.domain(this.datasets().map(function (d, i) { return String(i); }));
                 var widthProjector = Plottable.Plot._scaledAccessor(this.attr("width"));
                 innerScale.range([0, widthProjector(null, 0, null)]);
+
+                innerScale.outerPadding(0);
+                innerScale.innerPadding(0.1);
                 return innerScale;
             };
             ClusteredBar.prototype._getDataToDraw = function () {
@@ -12828,7 +13009,7 @@ var SVGTypewriter;
                     return this._textTrimming;
                 }
                 else {
-                    if (option !== "ellipsis" && option !== "none") {
+                    if (option !== "ellipsis" && option !== "none" && option !== "inherit") {
                         throw new Error(option + " - unsupported text trimming option.");
                     }
                     this._textTrimming = option;
@@ -12897,6 +13078,14 @@ var SVGTypewriter;
                         remainingToken: ""
                     };
                 }
+
+                if (this._textTrimming === "inherit") {
+                    return {
+                        wrappedToken: line,
+                        remainingToken: ""
+                    };
+                }
+
                 var truncatedLine = line.substring(0).trim();
                 var lineWidth = measurer.measure(truncatedLine).width;
                 var ellipsesWidth = measurer.measure("...").width;
@@ -12974,6 +13163,14 @@ var SVGTypewriter;
                         breakWord: false
                     };
                 }
+                if (this._textTrimming === "inherit") {
+                    return {
+                        remainingToken: null,
+                        line: line + token,
+                        breakWord: false
+                    };
+                }
+
                 if (token.trim() === "") {
                     return {
                         remainingToken: "",
