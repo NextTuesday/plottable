@@ -4876,6 +4876,7 @@ var Plottable;
             function Category(scale, orientation) {
                 _super.call(this, scale, orientation);
                 this._tickLabelAngle = 0;
+                this._maxLines = Infinity;
                 this._tickTextTrimming = 'ellipsis';
                 this.addClass("category-axis");
             }
@@ -4884,6 +4885,7 @@ var Plottable;
                 this._measurer = new SVGTypewriter.Measurers.CacheCharacterMeasurer(this._tickLabelContainer);
                 this._wrapper = new SVGTypewriter.Wrappers.SingleLineWrapper();
                 this._wrapper.textTrimming(this._tickTextTrimming);
+                this._wrapper.maxLines(this._maxLines);
                 this._writer = new SVGTypewriter.Writers.Writer(this._measurer, this._wrapper);
             };
             Category.prototype._rescale = function () {
@@ -5076,6 +5078,14 @@ var Plottable;
                 // on everyone, including this. Since CSS or something might have
                 // affected the size of the characters, clear the cache.
                 this._tickTextTrimming = trimming;
+
+                return this;
+            };
+            Category.prototype.maxLines = function (lines) {
+                // When anyone calls redraw(), computeLayout() will be called
+                // on everyone, including this. Since CSS or something might have
+                // affected the size of the characters, clear the cache.
+                this._maxLines = lines;
 
                 return this;
             };
