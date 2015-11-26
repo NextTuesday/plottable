@@ -5270,6 +5270,7 @@ var Plottable;
                 _super.call(this);
                 this._padding = 5;
                 this.addClass("legend");
+                this.maxWidth(null);
                 this.topPadding(20);
                 this.rowPadding(5);
                 this.leftPadding(27);
@@ -5378,6 +5379,17 @@ var Plottable;
                     return this;
                 }
             };
+
+            Legend.prototype.maxWidth = function (maxWidth) {
+                if (maxWidth == null) {
+                    return this._maxWidth = null;
+                }
+                else {
+                    this._maxWidth = maxWidth;
+                    this.redraw();
+                    return this;
+                }
+            };
             Legend.prototype.colorScale = function (colorScale) {
                 if (colorScale != null) {
                     this._colorScale.offUpdate(this._redrawCallback);
@@ -5396,6 +5408,11 @@ var Plottable;
             };
             Legend.prototype._calculateLayoutInfo = function (availableWidth, availableHeight) {
                 var _this = this;
+
+                if (this._maxWidth) {
+                    availableWidth = this._maxWidth;
+                }
+
                 var textHeight = this._measurer.measure().height;
                 var availableWidthForEntries = Math.max(0, (availableWidth - this._padding));
                 var entryNames = this._colorScale.domain().slice().sort(function (a, b) { return _this._comparator(_this._formatter(a), _this._formatter(b)); });
@@ -5483,8 +5500,8 @@ var Plottable;
 
                 var longestUntruncatedRowLength = Plottable.Utils.Math.max(untruncatedRowLengths, 0);
                 return {
-                    minWidth: this._padding + longestUntruncatedRowLength,
-                    minHeight: estimatedLayout.rows.length * estimatedLayout.textHeight + 2 * this._padding + 2 * this._rowPadding + this._topPadding
+                    minWidth: this._maxWidth ? this._maxWidth : this._padding + longestUntruncatedRowLength,
+                    minHeight: estimatedLayout.rows.length * estimatedLayout.textHeight + 2 * this._padding + estimatedLayout.rows.length * this._rowPadding + this._topPadding
                 };
             };
             Legend.prototype._packRows = function (availableWidth, entries, entryLengths) {
