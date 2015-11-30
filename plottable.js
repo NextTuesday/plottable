@@ -5276,7 +5276,9 @@ var Plottable;
                 this.leftPadding(27);
                 this.maxEntriesPerRow(1);
                 this.identicalEntryWidth(false);
+                this.maxLines(1);
                 this.swapEntries(false);
+                this.rightTextPadding(0);
                 if (colorScale == null) {
                     throw new Error("Legend requires a colorScale");
                 }
@@ -5296,9 +5298,9 @@ var Plottable;
                 _super.prototype._setup.call(this);
                 var fakeLegendRow = this.content().append("g").classed(Legend.LEGEND_ROW_CLASS, true);
                 var fakeLegendEntry = fakeLegendRow.append("g").classed(Legend.LEGEND_ENTRY_CLASS, true);
-                fakeLegendEntry.append("text").classed(Legend.LEGEND_ENTRY_HEIGHT_CLASS, true);
+                fakeLegendEntry.append("text").classed(Legend.LEGEND_ENTRY_HEIGHT_CLASS, true).attr('width', 100);
                 this._measurer = new SVGTypewriter.Measurers.Measurer(fakeLegendRow);
-                this._wrapper = new SVGTypewriter.Wrappers.Wrapper().maxLines(1);
+                this._wrapper = new SVGTypewriter.Wrappers.Wrapper().maxLines(this._maxLines);
                 this._writer = new SVGTypewriter.Writers.Writer(this._measurer, this._wrapper).addTitleElement(Plottable.Configs.ADD_TITLE_ELEMENTS);
             };
             Legend.prototype.formatter = function (formatter) {
@@ -5345,6 +5347,26 @@ var Plottable;
                 }
                 else {
                     this._topPadding = topPadding;
+                    this.redraw();
+                    return this;
+                }
+            };
+            Legend.prototype.maxLines = function (maxLines) {
+                if (maxLines == null) {
+                    return this._maxLines;
+                }
+                else {
+                    this._maxLines = maxLines;
+                    this.redraw();
+                    return this;
+                }
+            };
+            Legend.prototype.rightTextPadding = function (rightTextPadding) {
+                if (rightTextPadding == null) {
+                    return this._rightTextPadding;
+                }
+                else {
+                    this._rightTextPadding = rightTextPadding;
                     this.redraw();
                     return this;
                 }
@@ -5410,7 +5432,7 @@ var Plottable;
                 var _this = this;
 
                 if (this._maxWidth) {
-                    availableWidth = this._maxWidth;
+                    availableWidth = this._maxWidth + this._rightTextPadding;
                 }
 
                 var textHeight = this._measurer.measure().height;
@@ -5430,6 +5452,7 @@ var Plottable;
                     _entryLengths.set(entryName, entryLength);
                     untruncatedEntryLengths.set(entryName, untruncatedEntryLength);
                 });
+
                 var rows = this._packRows(availableWidthForEntries, entryNames, _entryLengths);
                 var rowsAvailable = Math.floor((availableHeight - 2 * this._padding) / textHeight);
                 if (rowsAvailable !== rowsAvailable) {
@@ -5571,6 +5594,43 @@ var Plottable;
                 });
                 return entities;
             };
+            Legend.prototype.entities = function () {
+                if (!this._isSetup) {
+                    return [];
+                }
+                var _this = this;
+                var entities = [];
+                var layout = this._calculateLayoutInfo(this.width(), this.height());
+                var legendPadding = this._padding + this._topPadding;
+                var legend = this;
+                this.content().selectAll("g." + Legend.LEGEND_ROW_CLASS).each(function (d, i) {
+                    var rowPadding = i * _this._rowPadding;
+                    var lowY = i * layout.textHeight + legendPadding + rowPadding;
+                    var highY = (i + 1) * layout.textHeight + legendPadding + rowPadding;
+                    var symbolY = (lowY + highY) / 2;
+                    var lowX = legendPadding;
+                    var highX = legendPadding;
+                    d3.select(this).selectAll("g." + Legend.LEGEND_ENTRY_CLASS).each(function (value, j) {
+                        highX += _this._identicalEntryWidth ? layout.columnWidths[j] : layout.entryLengths.get(value);
+
+                        if (isNaN(highX)) {
+                            return;
+                        }
+
+                        var symbolX = lowX + layout.textHeight / 2;
+                        var entrySelection = d3.select(this);
+                        var datum = entrySelection.datum();
+                        entities.push({
+                            datum: datum,
+                            position: {x: symbolX, y: symbolY},
+                            selection: entrySelection,
+                            component: legend
+                        });
+                        lowX += _this._identicalEntryWidth ? layout.columnWidths[j] : layout.entryLengths.get(value);
+                    });
+                });
+                return entities;
+            };
             Legend.prototype.renderImmediately = function () {
                 var _this = this;
                 _super.prototype.renderImmediately.call(this);
@@ -5609,7 +5669,7 @@ var Plottable;
                         if (_this._swapEntries) {
                             translateX = (_this._identicalEntryWidth ? layout.columnWidths[i] : layout.entryLengths.get(value)) - layout.textHeight * 2;
                         }
-                        entry.attr("transform", "translate(" + (translateX) + "," + layout.textHeight / 2 + ")")
+                        entry.attr("transform", "translate(" + (translateX) + "," + layout.textHeight / 2 + ")");
                     });
                 var padding = this._padding;
                 var textContainers = entries.select("g.text-container");
@@ -5625,13 +5685,14 @@ var Plottable;
                             yAlign: "top",
                             textRotation: 0
                         };
+
                         _this._writer.write(value ? _this._formatter(value) : '', maxTextLength, _this.height(), writeOptions);
 
                         if (_this._swapEntries && layout.entryLengths.get(value)) {
                             translateX = (_this._identicalEntryWidth ? layout.columnWidths[i] - (layout.textHeight * 2.6) : layout.textHeight);
                         }
 
-                        container.attr("transform", "translate(" + translateX + ", 0)")
+                        container.attr("transform", "translate(" + translateX + ", 0)");
                 });
                 return this;
             };
