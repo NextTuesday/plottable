@@ -5240,15 +5240,16 @@ var Plottable;
                 _super.call(this);
                 this._padding = 5;
                 this.addClass("legend");
-                this.maxWidth(null);
-                this.topPadding(20);
-                this.rowPadding(5);
-                this.leftPadding(27);
-                this.maxEntriesPerRow(1);
-                this.identicalEntryWidth(false);
-                this.maxLines(1);
-                this.swapEntries(false);
-                this.rightTextPadding(0);
+                this._leftTextPadding = 0;
+                this._maxWidth = null;
+                this._topPadding = 20;
+                this._rowPadding = 5;
+                this._leftPadding = 0;
+                this._maxEntriesPerRow = 1;
+                this._identicalEntryWidth = false;
+                this._maxLines = 1;
+                this._swapEntries = false;
+                this._rightTextPadding = 0;
                 if (colorScale == null) {
                     throw new Error("Legend requires a colorScale");
                 }
@@ -5348,6 +5349,15 @@ var Plottable;
                 else {
                     this._leftPadding = leftPadding;
                     this.redraw();
+                    return this;
+                }
+            };
+            Legend.prototype.leftTextPadding = function (leftTextPadding) {
+                if (leftTextPadding == null) {
+                    return this._leftTextPadding;
+                }
+                else {
+                    this._leftTextPadding = leftTextPadding;
                     return this;
                 }
             };
@@ -5531,15 +5541,16 @@ var Plottable;
                 var _this = this;
                 var entities = [];
                 var layout = this._calculateLayoutInfo(this.width(), this.height());
-                var legendPadding = this._padding + this._topPadding;
+                var legendPadding = this._padding;
                 var legend = this;
+                //this._maxWidth + this._rightTextPadding
                 this.content().selectAll("g." + Legend.LEGEND_ROW_CLASS).each(function (d, i) {
                     var rowPadding = i * _this._rowPadding;
-                    var lowY = i * layout.textHeight + legendPadding + rowPadding;
-                    var highY = (i + 1) * layout.textHeight + legendPadding + rowPadding;
+                    var lowY = i * layout.textHeight + legendPadding + rowPadding + _this._topPadding;
+                    var highY = (i + 1) * layout.textHeight + legendPadding + rowPadding + _this._topPadding;
                     var symbolY = (lowY + highY) / 2;
-                    var lowX = legendPadding;
-                    var highX = legendPadding;
+                    var lowX = legendPadding + _this._leftPadding - layout.textHeight / 2 + _this._leftTextPadding;
+                    var highX = legendPadding + Math.abs(_this._leftTextPadding);
                     d3.select(this).selectAll("g." + Legend.LEGEND_ENTRY_CLASS).each(function (value, j) {
                         highX += _this._identicalEntryWidth ? layout.columnWidths[j] : layout.entryLengths.get(value);
 
