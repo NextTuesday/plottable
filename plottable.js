@@ -9575,7 +9575,7 @@ var Plottable;
                 innerScale.range([0, widthProjector(null, 0, null)]);
 
                 innerScale.outerPadding(0);
-                innerScale.innerPadding(0.1);
+                innerScale.innerPadding(0.4);
                 return innerScale;
             };
             ClusteredBar.prototype._getDataToDraw = function () {
