@@ -9547,7 +9547,10 @@ var Plottable;
                 if (orientation === void 0) { orientation = Plots.Bar.ORIENTATION_VERTICAL; }
                 _super.call(this, orientation);
                 this._clusterOffsets = new Plottable.Utils.Map();
+                this._innerScaleOuterPadding = 0;
+                this._innerScaleInnerPadding = 0.1;
             }
+
             ClusteredBar.prototype._generateAttrToProjector = function () {
                 var _this = this;
                 var attrToProjector = _super.prototype._generateAttrToProjector.call(this);
@@ -9577,13 +9580,33 @@ var Plottable;
                 var widthProjector = Plottable.Plot._scaledAccessor(this.attr("width"));
                 innerScale.range([0, widthProjector(null, 0, null)]);
 
-                innerScale.outerPadding(0);
-                innerScale.innerPadding(0.4);
+                innerScale.outerPadding(this._innerScaleOuterPadding);
+                innerScale.innerPadding(this._innerScaleInnerPadding);
                 return innerScale;
             };
             ClusteredBar.prototype._getDataToDraw = function () {
                 this._updateClusterPosition();
                 return _super.prototype._getDataToDraw.call(this);
+            };
+            ClusteredBar.prototype.innerScaleOuterPadding = function (padding) {
+                if (padding == null) {
+                    return this._innerScaleOuterPadding;
+                }
+                else {
+                    this._innerScaleOuterPadding = padding;
+                    this.redraw();
+                    return this;
+                }
+            };
+            ClusteredBar.prototype.innerScaleInnerPadding = function (padding) {
+                if (padding == null) {
+                    return this._innerScaleInnerPadding;
+                }
+                else {
+                    this._innerScaleInnerPadding = padding;
+                    this.redraw();
+                    return this;
+                }
             };
             return ClusteredBar;
         })(Plots.Bar);
