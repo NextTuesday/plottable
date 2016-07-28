@@ -7280,6 +7280,7 @@ var Plottable;
                 _super.call(this);
                 this._labelFormatter = Plottable.Formatters.identity();
                 this._labelsEnabled = false;
+                this._labelsPosition = 'outside';
                 this.innerRadius(0);
                 this.outerRadius(function () { return Math.min(_this.width(), _this.height()) / 2; });
                 this.addClass("pie-plot");
@@ -7400,6 +7401,16 @@ var Plottable;
                 }
                 else {
                     this._labelsEnabled = enabled;
+                    this.render();
+                    return this;
+                }
+            };
+            Pie.prototype.labelsPosition = function (position) {
+                if (position == null) {
+                    return this._labelsPosition;
+                }
+                else {
+                    this._labelsPosition = position;
                     this.render();
                     return this;
                 }
@@ -7540,7 +7551,7 @@ var Plottable;
                     }
                     value = _this._labelFormatter(value);
                     var measurement = measurer.measure(value);
-                    var theta = (_this._endAngles[datumIndex] + _this._startAngles[datumIndex]) / 2;
+                    var theta = _this._startAngles[datumIndex] + (_this._endAngles[datumIndex] - _this._startAngles[datumIndex]) / 2 - Math.PI / 2;
                     var outerRadius = _this.outerRadius().accessor(datum, datumIndex, dataset);
                     if (_this.outerRadius().scale) {
                         outerRadius = _this.outerRadius().scale.scale(outerRadius);
@@ -7549,9 +7560,16 @@ var Plottable;
                     if (_this.innerRadius().scale) {
                         innerRadius = _this.innerRadius().scale.scale(innerRadius);
                     }
-                    var labelRadius = (outerRadius + innerRadius) / 2;
-                    var x = Math.sin(theta) * labelRadius - measurement.width / 2;
-                    var y = -Math.cos(theta) * labelRadius - measurement.height / 2;
+
+                    var labelRadius = (outerRadius + innerRadius);
+                    if (_this._labelsPosition === 'inside') {
+                        labelRadius /= 2;
+                    } else {
+                        labelRadius += 0.3;
+                    }
+
+                    var x = Math.cos(theta) * labelRadius - measurement.width / 2;
+                    var y = Math.sin(theta) * labelRadius - measurement.height / 2;
                     var corners = [
                         { x: x, y: y },
                         { x: x, y: y + measurement.height },
@@ -7566,11 +7584,22 @@ var Plottable;
                         showLabel = sliceIndices.every(function (index) { return index === datumIndex; });
                     }
                     var color = attrToProjector["fill"](datum, datumIndex, dataset);
+                    var opacity = attrToProjector["opacity"](datum, datumIndex, dataset);
                     var dark = Plottable.Utils.Color.contrast("white", color) * 1.6 < Plottable.Utils.Color.contrast("black", color);
                     var g = labelArea.append("g").attr("transform", "translate(" + x + "," + y + ")");
                     var className = dark ? "dark-label" : "light-label";
                     g.classed(className, true);
-                    g.style("visibility", showLabel ? "inherit" : "hidden");
+                    g.style("visibility", _this._labelsPosition === 'outside' || showLabel ? "inherit" : "hidden");
+                    if (_this._labelsPosition === 'outside') {
+                        g.attr('fill', color);
+                        // g.append("rect")
+                        //     .attr("width", measurement.width + 5)
+                        //     .attr("height", measurement.height + 5)
+                        //     .attr("x", -2.5)
+                        //     .attr("y", -2.5)
+                        //     .attr('opacity', opacity)
+                        //     .attr('fill', color);
+                    }
                     writer.write(value, measurement.width, measurement.height, {
                         selection: g,
                         xAlign: "center",
