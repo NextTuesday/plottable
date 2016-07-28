@@ -7565,7 +7565,7 @@ var Plottable;
                     if (_this._labelsPosition === 'inside') {
                         labelRadius /= 2;
                     } else {
-                        labelRadius += 0.3;
+                        labelRadius -= 8;
                     }
 
                     var x = Math.cos(theta) * labelRadius - measurement.width / 2;
