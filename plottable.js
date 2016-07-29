@@ -7281,6 +7281,7 @@ var Plottable;
                 this._labelFormatter = Plottable.Formatters.identity();
                 this._labelsEnabled = false;
                 this._labelsPosition = 'outside';
+                this._labelsOffset = 0;
                 this.innerRadius(0);
                 this.outerRadius(function () { return Math.min(_this.width(), _this.height()) / 2; });
                 this.addClass("pie-plot");
@@ -7411,6 +7412,16 @@ var Plottable;
                 }
                 else {
                     this._labelsPosition = position;
+                    this.render();
+                    return this;
+                }
+            };
+            Pie.prototype.labelsOffset = function (offset) {
+                if (offset == null) {
+                    return this._labelsOffset;
+                }
+                else {
+                    this._labelsOffset = offset;
                     this.render();
                     return this;
                 }
@@ -7565,7 +7576,7 @@ var Plottable;
                     if (_this._labelsPosition === 'inside') {
                         labelRadius /= 2;
                     } else {
-                        labelRadius -= 8;
+                        labelRadius -= _this._labelsOffset;
                     }
 
                     var x = Math.cos(theta) * labelRadius - measurement.width / 2;
