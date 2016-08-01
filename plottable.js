@@ -5553,7 +5553,7 @@ var Plottable;
                     var highY = (i + 1) * layout.textHeight + legendPadding + rowPadding + _this._topPadding;
                     var symbolY = (lowY + highY) / 2;
                     var lowX = legendPadding + _this._leftPadding - layout.textHeight / 2 + _this._leftTextPadding;
-                    var highX = legendPadding + Math.abs(_this._leftTextPadding);
+                    var highX = lowX; //legendPadding + Math.abs(_this._leftTextPadding);
                     d3.select(this).selectAll("g." + Legend.LEGEND_ENTRY_CLASS).each(function (value, j) {
                         highX += _this._identicalEntryWidth ? layout.columnWidths[j] : layout.entryLengths.get(value);
 
