@@ -7946,8 +7946,6 @@ var Plottable;
                 _super.call(this);
                 this._labelsEnabled = false;
                 this._label = null;
-                this._minWidth = 0;
-                this._minHeight = 0;
                 this.animator("rectangles", new Plottable.Animators.Null());
                 this.addClass("rectangle-plot");
                 this.attr("fill", new Plottable.Scales.Color().range()[0]);
@@ -7966,36 +7964,22 @@ var Plottable;
                 var xScale = this.x().scale;
                 var yScale = this.y().scale;
                 if (x2Attr != null) {
-                    attrToProjector["width"] = function (d, i, dataset) {
-                        return Math.abs(x2Attr(d, i, dataset) - xAttr(d, i, dataset)) || _this._minWidth;
-                    };
-                    attrToProjector["x"] = function (d, i, dataset) {
-                        return Math.min(x2Attr(d, i, dataset), xAttr(d, i, dataset));
-                    };
+                    attrToProjector["width"] = function (d, i, dataset) { return Math.abs(x2Attr(d, i, dataset) - xAttr(d, i, dataset)); };
+                    attrToProjector["x"] = function (d, i, dataset) { return Math.min(x2Attr(d, i, dataset), xAttr(d, i, dataset)); };
                 }
                 else {
-                    attrToProjector["width"] = function (d, i, dataset) {
-                        return _this._rectangleWidth(xScale) || _this._minWidth;
-                    };
-                    attrToProjector["x"] = function (d, i, dataset) {
-                        return xAttr(d, i, dataset) - 0.5 * attrToProjector["width"](d, i, dataset);
-                    };
+                    attrToProjector["width"] = function (d, i, dataset) { return _this._rectangleWidth(xScale); };
+                    attrToProjector["x"] = function (d, i, dataset) { return xAttr(d, i, dataset) - 0.5 * attrToProjector["width"](d, i, dataset); };
                 }
                 if (y2Attr != null) {
-                    attrToProjector["height"] = function (d, i, dataset) {
-                        return Math.abs(y2Attr(d, i, dataset) - yAttr(d, i, dataset)) || _this._minHeight;
-                    };
+                    attrToProjector["height"] = function (d, i, dataset) { return Math.abs(y2Attr(d, i, dataset) - yAttr(d, i, dataset)); };
                     attrToProjector["y"] = function (d, i, dataset) {
                         return Math.max(y2Attr(d, i, dataset), yAttr(d, i, dataset)) - attrToProjector["height"](d, i, dataset);
                     };
                 }
                 else {
-                    attrToProjector["height"] = function (d, i, dataset) {
-                        return _this._rectangleWidth(yScale) || _this._minHeight;
-                    };
-                    attrToProjector["y"] = function (d, i, dataset) {
-                        return yAttr(d, i, dataset) - 0.5 * attrToProjector["height"](d, i, dataset);
-                    };
+                    attrToProjector["height"] = function (d, i, dataset) { return _this._rectangleWidth(yScale); };
+                    attrToProjector["y"] = function (d, i, dataset) { return yAttr(d, i, dataset) - 0.5 * attrToProjector["height"](d, i, dataset); };
                 }
                 // Clean up the attributes projected onto the SVG elements
                 delete attrToProjector[Rectangle._X2_KEY];
@@ -8086,22 +8070,6 @@ var Plottable;
                 var yBinding = this.y();
                 var yScale = yBinding && yBinding.scale;
                 this._bindProperty(Rectangle._Y2_KEY, y2, yScale);
-                this.render();
-                return this;
-            };
-            Rectangle.prototype.minWidth = function (minWidth) {
-                if (minWidth == null) {
-                    return this._minWidth;
-                }
-                this._minWidth = minWidth;
-                this.render();
-                return this;
-            };
-            Rectangle.prototype.minHeight = function (minHeight) {
-                if (minHeight == null) {
-                    return this._minHeight;
-                }
-                this._minHeight = minHeight;
                 this.render();
                 return this;
             };
