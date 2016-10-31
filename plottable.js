@@ -5245,6 +5245,7 @@ var Plottable;
                 this.addClass("legend");
                 this._leftTextPadding = 0;
                 this._maxWidth = null;
+                this._entryWidth = null;
                 this._topPadding = 20;
                 this._rowPadding = 5;
                 this._leftPadding = 0;
@@ -5395,6 +5396,16 @@ var Plottable;
                     return this;
                 }
             };
+            Legend.prototype.entryWidth = function (entryWidth) {
+                if (entryWidth == null) {
+                    return this._entryWidth = null;
+                }
+                else {
+                    this._entryWidth = entryWidth;
+                    this.redraw();
+                    return this;
+                }
+            };
             Legend.prototype.colorScale = function (colorScale) {
                 if (colorScale != null) {
                     this._colorScale.offUpdate(this._redrawCallback);
@@ -5431,6 +5442,9 @@ var Plottable;
                 });
                 entryNames.forEach(function (entryName) {
                     var untruncatedEntryLength = textHeight + _this._measurer.measure(_this._formatter(entryName)).width + _this._padding;
+                    if (_this._entryWidth) {
+                        untruncatedEntryLength = _this._entryWidth;
+                    }
                     var entryLength = Math.min(untruncatedEntryLength, availableWidthForEntries);
                     _entryLengths.set(entryName, entryLength);
                     untruncatedEntryLengths.set(entryName, untruncatedEntryLength);
@@ -5517,7 +5531,7 @@ var Plottable;
                 var spaceLeft = availableWidth;
                 entries.forEach(function (e) {
                     var entryLength = entryLengths.get(e);
-                    if (entryLength > spaceLeft || currentRow.length === _this._maxEntriesPerRow) {
+                    if (entryLength >= spaceLeft || (currentRow.length === _this._maxEntriesPerRow && _this._maxWidth === null)) {
                         rows.push(currentRow);
                         currentRow = [];
                         spaceLeft = availableWidth;
