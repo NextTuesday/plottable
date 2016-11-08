@@ -5531,7 +5531,7 @@ var Plottable;
                 var spaceLeft = availableWidth;
                 entries.forEach(function (e) {
                     var entryLength = entryLengths.get(e);
-                    if (entryLength >= spaceLeft || (currentRow.length === _this._maxEntriesPerRow && _this._maxWidth === null)) {
+                    if (entryLength > spaceLeft || (currentRow.length === _this._maxEntriesPerRow && _this._entryWidth === null)) {
                         rows.push(currentRow);
                         currentRow = [];
                         spaceLeft = availableWidth;
