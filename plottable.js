@@ -5302,7 +5302,7 @@ var Plottable;
                 }
                 else {
                     this._identicalEntryWidth = identicalEntryWidth;
-                    this.redraw();
+                    // this.redraw();
                     return this;
                 }
             };
@@ -5312,7 +5312,7 @@ var Plottable;
                 }
                 else {
                     this._swapEntries = swapEntries;
-                    this.redraw();
+                    // this.redraw();
                     return this;
                 }
             };
@@ -5332,7 +5332,7 @@ var Plottable;
                 }
                 else {
                     this._maxLines = maxLines;
-                    this.redraw();
+                    // this.redraw();
                     return this;
                 }
             };
@@ -5342,7 +5342,7 @@ var Plottable;
                 }
                 else {
                     this._rightTextPadding = rightTextPadding;
-                    this.redraw();
+                    // this.redraw();
                     return this;
                 }
             };
@@ -5352,7 +5352,7 @@ var Plottable;
                 }
                 else {
                     this._leftPadding = leftPadding;
-                    this.redraw();
+                    // this.redraw();
                     return this;
                 }
             };
@@ -5371,7 +5371,7 @@ var Plottable;
                 }
                 else {
                     this._rowPadding = rowPadding;
-                    this.redraw();
+                    // this.redraw();
                     return this;
                 }
             };
@@ -5392,7 +5392,7 @@ var Plottable;
                 }
                 else {
                     this._maxWidth = maxWidth;
-                    this.redraw();
+                    // this.redraw();
                     return this;
                 }
             };
@@ -5402,7 +5402,7 @@ var Plottable;
                 }
                 else {
                     this._entryWidth = entryWidth;
-                    this.redraw();
+                    // this.redraw();
                     return this;
                 }
             };
